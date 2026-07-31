@@ -26,6 +26,7 @@ let cardBackUrl = null; // URL of the shared card back
 let unveiled = false;  // reveal state (reversible)
 let faceUp = false;    // currently visible face (toggle)
 let hideTimer = null;
+const preloaded = {};  // url -> Image, kept in memory so the browser never re-fetches
 
 // ---- Elements ----
 const el = (id) => document.getElementById(id);
@@ -139,9 +140,21 @@ async function fetchMyRole() {
     myCard = data.card;
     cardBackUrl = data.cardBack;
     unveiled = !!data.unveiled;
+    // Preload the only images this player will see (own card + back) so flipping
+    // is instant and they aren't re-fetched every time the card is shown.
+    preload(myCard);
+    preload(cardBackUrl);
   } catch {
     showError('Could not fetch your role.');
   }
+}
+
+// Fetches an image into memory (and the browser cache) once. Idempotent.
+function preload(url) {
+  if (!url || preloaded[url]) return;
+  const img = new Image();
+  img.src = url;
+  preloaded[url] = img; // retained so it stays in memory for the whole game
 }
 
 // ============================ Render: LOBBY ============================

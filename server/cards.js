@@ -38,8 +38,21 @@ export const CARD_BACK_URL = '/assets/cards/extras/card-back.png';
  */
 const index = {};
 
+// When packaged, card images are NOT bundled — serve them from the official
+// site to keep the binary small. In dev (plain node) use the local files.
+const REMOTE = typeof process.pkg !== 'undefined';
+const REMOTE_BASE = 'https://www.mtgtreachery.net/images/cards/en/trd';
+
 function toUrl(role, rarityFolder, file) {
-  // Served statically at /assets/... ; encode each segment for spaces/() etc.
+  if (REMOTE) {
+    // Local name: "050 - Leader - (U) - The Blood Empress.png"
+    // Remote name: "050 - Leader - The Blood Empress.jpg" (no rarity tag, .jpg)
+    const remoteName = file
+      .replace(/ - \([URMS]\) - /, ' - ') // collapse " - (X) - " to a single " - "
+      .replace(/\.png$/i, '.jpg');
+    return `${REMOTE_BASE}/${encodeURIComponent(remoteName)}`;
+  }
+  // Dev: served statically at /assets/... ; encode each segment for spaces/() etc.
   const parts = ['assets', 'cards', ROLE_DIR[role], rarityFolder, file].map(encodeURIComponent);
   return '/' + parts.join('/');
 }

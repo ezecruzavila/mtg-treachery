@@ -5,7 +5,7 @@
     "targets": ["node22-macos-x64", "node22-macos-arm64", "node22-win-x64"],
     "assets": [
       "public/**/*",
-      "assets/cards/**/*",
+      "assets/cards/extras/card-back.png",
       "dist/cards-manifest.json"
     ],
     "outputPath": "dist"
