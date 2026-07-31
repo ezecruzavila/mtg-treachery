@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1216" />
+  <title>MTG Treachery — Roles</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="brand">
+      <h1>MTG Treachery</h1>
+    </div>
+
+    <div id="error" class="error hidden"></div>
+
+    <div class="card stack">
+      <div>
+        <label for="name">Your name</label>
+        <input id="name" type="text" placeholder="e.g. Ann" autocomplete="off" maxlength="12" />
+      </div>
+      <div>
+        <label>Card rarity</label>
+        <div class="segmented" id="rarity">
+          <button type="button" data-rarity="U" class="active">Uncommon</button>
+          <button type="button" data-rarity="R">Rare</button>
+          <button type="button" data-rarity="M">Mythic</button>
+        </div>
+      </div>
+      <button id="create-btn">Create room</button>
+    </div>
+
+    <div class="divider">— or join a room —</div>
+
+    <div class="card stack">
+      <div>
+        <label for="code">Room code</label>
+        <input id="code" type="text" class="code-input" placeholder="ABCD" autocomplete="off" maxlength="4" inputmode="text" />
+      </div>
+      <button id="join-btn" class="secondary">Join</button>
+    </div>
+
+    <div class="footer-note">
+      Everyone on the same network can join. Only you can see your role.
+    </div>
+  </div>
+
+  <script type="module" src="/rules.js"></script>
+  <script type="module">
+    import { createRoom, joinExisting, showError, getName, setName } from '/app.js';
+
+    const nameEl = document.getElementById('name');
+    const codeEl = document.getElementById('code');
+    nameEl.value = getName();
+
+    // Rarity segmented control (incremental: U / R+U / M+R+U). Default: Uncommon.
+    let rarity = 'U';
+    const rarityBox = document.getElementById('rarity');
+    rarityBox.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-rarity]');
+      if (!btn) return;
+      rarity = btn.dataset.rarity;
+      for (const b of rarityBox.children) b.classList.toggle('active', b === btn);
+    });
+
+    document.getElementById('create-btn').addEventListener('click', async () => {
+      const name = nameEl.value.trim();
+      if (!name) return showError('Enter your name first.');
+      setName(name);
+      await createRoom(name, rarity);
+    });
+
+    document.getElementById('join-btn').addEventListener('click', async () => {
+      const name = nameEl.value.trim();
+      const code = codeEl.value.trim().toUpperCase();
+      if (!name) return showError('Enter your name first.');
+      if (code.length !== 4) return showError('The code has 4 letters.');
+      setName(name);
+      await joinExisting(code, name);
+    });
+
+    // Enter to submit
+    nameEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('create-btn').click(); });
+    codeEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('join-btn').click(); });
+  </script>
+</body>
+</html>

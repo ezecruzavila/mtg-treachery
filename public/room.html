@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1216" />
+  <title>Room — MTG Treachery</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="brand">
+      <h1>MTG Treachery</h1>
+      <div class="sub" id="conn-sub"></div>
+    </div>
+
+    <div id="error" class="error hidden"></div>
+
+    <!-- ===================== LOBBY VIEW ===================== -->
+    <section id="view-lobby" class="hidden stack">
+      <div class="card">
+        <div class="section-title center">Room code</div>
+        <div class="roomcode" id="roomcode">····</div>
+        <div class="qr-wrap">
+          <img id="qr" alt="QR to join" />
+          <div class="lanurl" id="lanurl"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          Players <span class="count-pill" id="count">0</span>
+        </div>
+        <ul class="players" id="players"></ul>
+      </div>
+
+      <div id="deal-area" class="stack">
+        <button id="deal-btn" disabled>Start</button>
+        <div class="role-help center" id="deal-help"></div>
+      </div>
+
+      <div id="wait-area" class="hidden card center muted">
+        Waiting for <b id="dealer-name">the room creator</b> to deal…
+      </div>
+    </section>
+
+    <!-- ===================== MY ROLE VIEW ===================== -->
+    <section id="view-role" class="hidden stack">
+      <div class="role-stage">
+        <div class="role-card no-anim" id="role-card">
+          <div class="face back">
+            <img id="card-back-img" alt="Card back" />
+          </div>
+          <div class="face front">
+            <img id="card-front-img" alt="Your identity card" />
+          </div>
+        </div>
+      </div>
+
+      <div class="role-help center" id="role-help">Tap the card to flip it. It hides itself after 10 s.</div>
+
+      <!-- Unveil: reversible switch (no modal) -->
+      <div class="card switch-row" id="unveil-area">
+        <div class="switch-text">
+          <span class="switch-label">Unveil</span>
+          <span class="switch-sub">Keeps your card face-up</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="unveil-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="card">
+        <ul class="players" id="players-role"></ul>
+      </div>
+
+      <!-- Dealer-only controls -->
+      <div id="dealer-controls" class="stack hidden">
+        <button id="dealagain-btn" class="secondary">Restart</button>
+        <button id="close-btn" class="danger secondary">End Game</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Confirmation modal (reused by Restart and End Game) -->
+  <div id="confirm-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="confirm-title">Are you sure?</h3>
+      <p id="confirm-text"></p>
+      <div class="row">
+        <button id="confirm-cancel" class="secondary">Cancel</button>
+        <button id="confirm-ok" class="danger">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/rules.js"></script>
+  <script type="module" src="/room.js"></script>
+</body>
+</html>
