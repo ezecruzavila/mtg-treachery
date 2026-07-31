@@ -1,4 +1,4 @@
-# 🎴 MTG Treachery — Role dealer (LAN)
+# 🎴 MTG Treachery (LAN)
 
 A homemade web app to play the hidden-role Magic: The Gathering variant
 **[MTG Treachery](https://mtgtreachery.net)**. It secretly deals the identities
