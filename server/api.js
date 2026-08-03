@@ -7,7 +7,6 @@ import {
   dealRoom,
   closeRoom,
   deleteRoom,
-  setUnveiled,
   findPlayerByToken,
   toPublicRoom,
 } from './rooms.js';
@@ -100,23 +99,12 @@ export async function handleApi(req, res, { broadcast, closeRoomSockets, lanBase
     }
 
     // GET /api/me/role  — private role (authenticated)  ?code=CODE
+    // The client caches this; unveil is tracked client-side (private per player).
     if (path === '/api/me/role' && req.method === 'GET') {
       const room = getRoom(url.searchParams.get('code'));
       const player = authPlayer(req, room);
       if (!player) return send(res, 401, { error: 'Not authenticated in this room.' });
-      return send(res, 200, { role: player.role, card: player.card, cardBack: CARD_BACK_URL, unveiled: player.unveiled });
-    }
-
-    // POST /api/me/unveil  — set reveal state (authenticated, NO broadcast)  ?code=CODE
-    // Body: { unveiled: true|false } (reversible). Defaults to true if omitted.
-    if (path === '/api/me/unveil' && req.method === 'POST') {
-      const room = getRoom(url.searchParams.get('code'));
-      const player = authPlayer(req, room);
-      if (!player) return send(res, 401, { error: 'Not authenticated in this room.' });
-      const body = await readJson(req);
-      const value = body.unveiled === undefined ? true : !!body.unveiled;
-      setUnveiled(player, value);
-      return send(res, 200, { role: player.role, card: player.card, cardBack: CARD_BACK_URL, unveiled: player.unveiled });
+      return send(res, 200, { role: player.role, card: player.card, cardBack: CARD_BACK_URL });
     }
 
     return send(res, 404, { error: 'Unknown API route.' });

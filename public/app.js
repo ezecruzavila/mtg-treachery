@@ -25,7 +25,42 @@ export function hasSession(code) {
 
 /** Clears the session for a room (e.g. invalid token after a server restart). */
 export function clearSession(code) {
-  localStorage.removeItem(SESSION_PREFIX + code.toUpperCase());
+  const c = code.toUpperCase();
+  localStorage.removeItem(SESSION_PREFIX + c);
+  localStorage.removeItem(ROLE_PREFIX + c);
+  localStorage.removeItem(UNVEIL_PREFIX + c);
+}
+
+// ---- Per-room gameplay cache -------------------------------------------------
+// Once dealt, the role/card never change until a re-deal. Caching them (plus
+// the private unveil flag) lets a player see their card, flip it, and read the
+// rules with NO server round-trip — so the host can safely sleep mid-game.
+
+const ROLE_PREFIX = 'treachery:role:';     // + CODE -> { role, card, cardBack, dealtAt }
+const UNVEIL_PREFIX = 'treachery:unveil:'; // + CODE -> "1" | absent (private, per player)
+
+/** Caches the dealt role/card for a room. Include dealtAt to detect re-deals. */
+export function saveRole(code, data) {
+  localStorage.setItem(ROLE_PREFIX + code.toUpperCase(), JSON.stringify(data));
+}
+/** Returns the cached role/card for a room, or null. */
+export function getRole(code) {
+  try {
+    const raw = localStorage.getItem(ROLE_PREFIX + code.toUpperCase());
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The unveil flag is private to this player; we keep it purely client-side. */
+export function getUnveil(code) {
+  return localStorage.getItem(UNVEIL_PREFIX + code.toUpperCase()) === '1';
+}
+export function setUnveil(code, value) {
+  const key = UNVEIL_PREFIX + code.toUpperCase();
+  if (value) localStorage.setItem(key, '1');
+  else localStorage.removeItem(key);
 }
 
 /** Name remembered across screens (convenience). */

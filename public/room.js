@@ -1,5 +1,5 @@
 // Room screen logic: presence WebSocket, lobby, role card and unveil.
-import { getSession, clearSession, showError } from '/app.js';
+import { getSession, clearSession, showError, saveRole, getRole, getUnveil, setUnveil } from '/app.js';
 
 const CODE = (location.pathname.match(/\/room\/([^/]+)/)?.[1] || '').toUpperCase();
 const session = getSession(CODE);
@@ -39,7 +39,10 @@ function connect() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   ws = new WebSocket(`${proto}://${location.host}/ws?code=${CODE}&token=${encodeURIComponent(session.token)}`);
 
-  ws.addEventListener('open', () => { connSub.textContent = ''; }); // no text when all is well
+  ws.addEventListener('open', () => {
+    connSub.textContent = ''; // no text when all is well
+    sendPing(); // wake the host promptly on (re)connect
+  });
 
   ws.addEventListener('message', (ev) => {
     let msg;
@@ -79,10 +82,28 @@ function scheduleReconnect() {
   }, 1500);
 }
 
+// ---- Heartbeat -------------------------------------------------------------
+// Keeps a hosted server (e.g. Render's free tier, which sleeps after ~15 min of
+// no traffic) awake WHILE someone is actively looking at the game. We only ping
+// when the tab is visible: if everyone backgrounds the app, pings stop and the
+// host may sleep — which is fine, because role/card are cached client-side.
+const HEARTBEAT_MS = 60_000;
+
+function sendPing() {
+  if (document.visibilityState !== 'visible') return;
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    try { ws.send(JSON.stringify({ type: 'ping' })); } catch { /* ignore */ }
+  }
+}
+
+const heartbeat = setInterval(sendPing, HEARTBEAT_MS);
+window.addEventListener('pagehide', () => clearInterval(heartbeat));
+
 // Reopen the socket when coming back to the foreground (phones suspend it in the background).
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     if (!ws || ws.readyState === WebSocket.CLOSED) connect();
+    else sendPing(); // still connected: nudge the host awake immediately
   } else {
     // On losing focus, hide the card for privacy (no-op if locked face-up).
     hideCard();
@@ -106,9 +127,17 @@ async function onState(room) {
   lastRoom = room;
 
   if (room.phase === 'dealt') {
-    // On entering dealt (or a re-deal), refresh our role. A re-deal resets unveil,
-    // so always re-fetch to pick up the new role + cleared unveil flag.
-    await fetchMyRole();
+    // Rehydrate from the local cache FIRST, so the card shows instantly and the
+    // host may sleep mid-game (no round-trip just to view your role). Only hit
+    // the server when the cache is missing or stale (a re-deal changed dealtAt).
+    const cached = getRole(CODE);
+    const fresh = cached && cached.dealtAt === room.dealtAt;
+    if (fresh) {
+      applyRole(cached);
+    } else {
+      await fetchMyRole(room.dealtAt); // deal / re-deal: server is awake right now
+    }
+
     renderRoleView(room);
     if (!wasDealt) {
       resetCardToBack();
@@ -120,11 +149,21 @@ async function onState(room) {
   }
 }
 
+// Applies a role payload (from cache or server) to local state + preloads images.
+function applyRole(data) {
+  myRole = data.role;
+  myCard = data.card;
+  cardBackUrl = data.cardBack;
+  unveiled = getUnveil(CODE); // unveil is private and client-only
+  preload(myCard);
+  preload(cardBackUrl);
+}
+
 function switchTo(view) {
   for (const v of [viewLobby, viewRole]) v.classList.toggle('hidden', v !== view);
 }
 
-async function fetchMyRole() {
+async function fetchMyRole(dealtAt) {
   try {
     const res = await fetch(`/api/me/role?code=${CODE}`, {
       headers: { Authorization: 'Bearer ' + session.token },
@@ -136,16 +175,18 @@ async function fetchMyRole() {
       return;
     }
     const data = await res.json();
-    myRole = data.role;
-    myCard = data.card;
-    cardBackUrl = data.cardBack;
-    unveiled = !!data.unveiled;
-    // Preload the only images this player will see (own card + back) so flipping
-    // is instant and they aren't re-fetched every time the card is shown.
-    preload(myCard);
-    preload(cardBackUrl);
+    // A re-deal clears the private unveil flag; a same-deal fetch keeps it.
+    const cachedBefore = getRole(CODE);
+    if (!cachedBefore || cachedBefore.dealtAt !== dealtAt) setUnveil(CODE, false);
+    // Cache role/card so future views (and reloads while the host sleeps) need
+    // no server round-trip. dealtAt lets us detect the next re-deal.
+    saveRole(CODE, { role: data.role, card: data.card, cardBack: data.cardBack, dealtAt });
+    applyRole({ role: data.role, card: data.card, cardBack: data.cardBack });
   } catch {
-    showError('Could not fetch your role.');
+    // Server unreachable (e.g. asleep): fall back to the cache if we have one.
+    const cached = getRole(CODE);
+    if (cached) applyRole(cached);
+    else showError('Could not fetch your role.');
   }
 }
 
@@ -258,7 +299,7 @@ function renderRoleView(room) {
   if (iAmLeader) {
     lockFaceUp(); // fixed face-up, no toggle, no auto-hide
   } else {
-    // Sync the unveil switch with server state.
+    // Sync the switch with our local (private) unveil state.
     el('unveil-toggle').checked = unveiled;
     // Show face-up ONLY when unveiled; otherwise force face-down so a refresh /
     // unlock never briefly shows the front (no flash).
@@ -318,26 +359,13 @@ function resetCardToBack() {
 }
 
 // ---- Unveil (reversible switch) ----
-el('unveil-toggle').addEventListener('change', async (e) => {
-  const value = e.target.checked;
-  try {
-    const res = await fetch(`/api/me/unveil?code=${CODE}`, {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + session.token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ unveiled: value }),
-    });
-    if (!res.ok) {
-      e.target.checked = !value; // revert on failure
-      return showError('Could not update.');
-    }
-    const data = await res.json();
-    unveiled = !!data.unveiled;
-    if (unveiled) lockFaceUp();
-    else hideCard();
-  } catch {
-    e.target.checked = !value;
-    showError('Connection error.');
-  }
+// Unveil is PRIVATE to this player — no one else sees it — so it's purely
+// client-side. Keeping it local means it works even while the host is asleep.
+el('unveil-toggle').addEventListener('change', (e) => {
+  unveiled = e.target.checked;
+  setUnveil(CODE, unveiled);
+  if (unveiled) lockFaceUp();
+  else hideCard();
 });
 
 // ---- Confirmation modal (reused by Restart and End Game) ----
@@ -376,8 +404,10 @@ el('dealagain-btn').addEventListener('click', async () => {
       const d = await res.json().catch(() => ({}));
       showError(d.error || 'Could not deal again.');
     } else {
-      // Fresh deal: reset local reveal + flip the card back down.
+      // Fresh deal: clear our private reveal + flip the card back down. The new
+      // role arrives over the socket (onState re-fetches on the changed dealtAt).
       unveiled = false;
+      setUnveil(CODE, false);
       el('unveil-toggle').checked = false;
       resetCardToBack();
     }

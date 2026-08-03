@@ -26,7 +26,6 @@ const rooms = new Map();
  * @property {string} token     secret bearer that identifies that browser
  * @property {string} name
  * @property {?string} role     SECRET — server-only; null until dealt
- * @property {boolean} unveiled reveal state on the player's own screen
  * @property {boolean} connected presence based on a live socket
  * @property {number} lastSeen  Date.now() of the last socket close
  * @property {number} joinedAt  for seat ordering and dealer succession
@@ -70,7 +69,6 @@ function makePlayer(name) {
     name: String(name || '').trim().slice(0, 12) || 'Player',
     role: null,
     card: null, // URL of the assigned identity card image; set on deal
-    unveiled: false,
     connected: false,
     lastSeen: now,
     joinedAt: now,
@@ -142,7 +140,6 @@ export function dealRoom(room, byPlayerId, { allowRedeal = false } = {}) {
   room.players.forEach((p, i) => {
     p.role = roles[i];
     p.card = cards[i];
-    p.unveiled = false; // a fresh deal hides everyone's card again
   });
   room.phase = 'dealt';
   room.dealtAt = Date.now();
@@ -170,13 +167,6 @@ export function deleteRoom(code) {
   const room = getRoom(code);
   if (room) clearDealerTimer(room);
   rooms.delete(String(code || '').toUpperCase());
-}
-
-/** Sets a player's reveal state. Reversible; does not broadcast anything. */
-export function setUnveiled(player, value) {
-  if (!player) return false;
-  player.unveiled = !!value;
-  return true;
 }
 
 // ---- Presence and dealer transfer -----------------------------------------
@@ -251,6 +241,7 @@ export function toPublicRoom(room, viewer = null) {
   return {
     code: room.code,
     phase: room.phase,
+    dealtAt: room.dealtAt, // lets clients detect a re-deal and refresh their cached card
     playerCount: room.players.length,
     dealerId: room.dealerId,
     creatorId: room.creatorId,
