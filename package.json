@@ -11,8 +11,11 @@
     "dev": "node --watch server/index.js",
     "test": "node --test",
     "manifest": "node scripts/gen-cards-manifest.js",
-    "bundle": "npm run manifest && esbuild server/index.js --bundle --platform=node --format=cjs --target=node22 --outfile=dist/server.cjs --external:bufferutil --external:utf-8-validate --define:import.meta.url=__IMPORT_META_URL__ --banner:js=\"const __IMPORT_META_URL__ = require('node:url').pathToFileURL(__filename).href;\"",
-    "package": "npm run bundle && pkg dist/server.cjs --config pkg.json --out-path dist"
+    "bundle:remote": "esbuild server/index.js --bundle --platform=node --format=cjs --target=node22 --outfile=dist/server.cjs --external:bufferutil --external:utf-8-validate --define:__EMBED_IMAGES__=false --define:import.meta.url=__IMPORT_META_URL__ --banner:js=\"const __IMPORT_META_URL__ = require('node:url').pathToFileURL(__filename).href;\"",
+    "bundle:embedded": "esbuild server/index.js --bundle --platform=node --format=cjs --target=node22 --outfile=dist/server.embedded.cjs --external:bufferutil --external:utf-8-validate --define:__EMBED_IMAGES__=true --define:import.meta.url=__IMPORT_META_URL__ --banner:js=\"const __IMPORT_META_URL__ = require('node:url').pathToFileURL(__filename).href;\"",
+    "package:remote": "npm run manifest && npm run bundle:remote && pkg dist/server.cjs --config pkg.json --out-path dist",
+    "package:embedded": "npm run manifest && npm run bundle:embedded && pkg dist/server.embedded.cjs --config pkg.embedded.json --out-path dist",
+    "package": "npm run package:remote && npm run package:embedded"
   },
   "dependencies": {
     "qrcode": "^1.5.4",

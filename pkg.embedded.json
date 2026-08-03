@@ -1,11 +1,11 @@
 {
-  "name": "mtg-treachery",
-  "bin": "dist/server.cjs",
+  "name": "mtg-treachery-embedded",
+  "bin": "dist/server.embedded.cjs",
   "pkg": {
     "targets": ["node22-macos-arm64", "node22-win-x64"],
     "assets": [
       "public/**/*",
-      "assets/cards/extras/card-back.png",
+      "assets/cards/**/*",
       "dist/cards-manifest.json"
     ],
     "outputPath": "dist"

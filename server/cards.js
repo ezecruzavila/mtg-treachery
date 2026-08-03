@@ -38,9 +38,16 @@ export const CARD_BACK_URL = '/assets/cards/extras/card-back.png';
  */
 const index = {};
 
-// When packaged, card images are NOT bundled — serve them from the official
-// site to keep the binary small. In dev (plain node) use the local files.
-const REMOTE = typeof process.pkg !== 'undefined';
+// Whether card images are bundled into the binary. Injected at build time by
+// esbuild (--define:__EMBED_IMAGES__=true|false) to produce two flavors:
+//   - remote (default):  images are NOT bundled, served from the official site
+//   - embedded:          images are bundled and served locally
+// In plain `node` (dev) the define is absent, so we default to false below and
+// serve local files anyway (see the isPackaged check).
+const EMBED_IMAGES = (typeof __EMBED_IMAGES__ !== 'undefined') ? __EMBED_IMAGES__ : false;
+const isPackaged = typeof process.pkg !== 'undefined';
+// Fetch remotely only when packaged AND images weren't embedded.
+const REMOTE = isPackaged && !EMBED_IMAGES;
 const REMOTE_BASE = 'https://www.mtgtreachery.net/images/cards/en/trd';
 
 function toUrl(role, rarityFolder, file) {
