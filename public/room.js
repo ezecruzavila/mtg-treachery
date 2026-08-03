@@ -311,6 +311,7 @@ function lockFaceUp() {
   clearTimeout(hideTimer);
 }
 function resetCardToBack() {
+  if (isCardLocked()) return; // Leader / unveiled players stay face-up
   faceUp = false;
   card.classList.remove('face-up');
   clearTimeout(hideTimer);
