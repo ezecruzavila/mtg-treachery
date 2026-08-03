@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1216" />
+  <title>Host — MTG Treachery</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    /* The host screen is meant to be read from across a table, so the QR is
+       larger than the small lobby one. */
+    .host-qr img { width: min(70vmin, 360px); height: min(70vmin, 360px); }
+    .host-hint { margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="brand">
+      <h1>MTG Treachery</h1>
+      <div class="sub">Scan to join from your phone</div>
+    </div>
+
+    <div id="error" class="error hidden"></div>
+
+    <div class="card stack">
+      <div class="qr-wrap host-qr">
+        <img id="qr" alt="QR to open the game" />
+        <div class="lanurl" id="lanurl">Starting…</div>
+      </div>
+      <div class="footer-note center host-hint">
+        This computer only hosts the game. Everyone plays from their phone —
+        scan the code or open the address above.
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Fetch the QR + URL for the LAN home page and render them big.
+    fetch('/api/host-qr')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.dataUrl) document.getElementById('qr').src = d.dataUrl;
+        document.getElementById('lanurl').textContent = d.joinUrl || '';
+      })
+      .catch(() => {
+        document.getElementById('lanurl').textContent =
+          'Could not detect a network address.';
+      });
+  </script>
+</body>
+</html>
