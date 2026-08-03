@@ -1,0 +1,13 @@
+# Render Blueprint — deploys the game as a Node Web Service (free tier).
+# In the cloud we run with plain `node` (not the pkg binary), so card images are
+# served locally from assets/cards in the repo, and the join QR uses the public
+# URL Render injects as RENDER_EXTERNAL_URL. See server/index.js (lanBaseUrl).
+services:
+  - type: web
+    name: mtg-treachery
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    # Render provides PORT and RENDER_EXTERNAL_URL automatically.
+    healthCheckPath: /home

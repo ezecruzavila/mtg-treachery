@@ -62,8 +62,12 @@ function isCgnat(ip) {
 }
 
 const lanIp = discoverLanIp();
+// Public base URL to share (used for the join QR/links). When deployed (e.g.
+// Render sets RENDER_EXTERNAL_URL, or set PUBLIC_URL yourself) we use that so
+// the QR points at the real internet address; otherwise fall back to the LAN IP.
+const PUBLIC_URL = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
 function lanBaseUrl() {
-  return `http://${lanIp || 'localhost'}:${PORT}`;
+  return PUBLIC_URL || `http://${lanIp || 'localhost'}:${PORT}`;
 }
 
 // Serves a static file from PUBLIC_DIR safely (no path traversal).
