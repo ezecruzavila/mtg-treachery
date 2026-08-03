@@ -82,6 +82,14 @@ export async function handleApi(req, res, { broadcast, closeRoomSockets, lanBase
       return send(res, 200, { joinUrl, dataUrl });
     }
 
+    // GET /api/host-qr  — QR to the LAN home page (for the host "screen" that
+    // players scan; the computer is just the server, players use their phones).
+    if (path === '/api/host-qr' && req.method === 'GET') {
+      const joinUrl = `${lanBaseUrl()}/home`;
+      const dataUrl = await QRCode.toDataURL(joinUrl, { margin: 1, width: 360 });
+      return send(res, 200, { joinUrl, dataUrl });
+    }
+
     // GET /api/rooms/:code  — public state (no roles)
     m = path.match(/^\/api\/rooms\/([^/]+)$/);
     if (m && req.method === 'GET') {

@@ -9,6 +9,7 @@ import QRCode from 'qrcode';
 import { handleApi } from './api.js';
 import { attachWebSocket } from './ws.js';
 import { sweepRooms } from './rooms.js';
+import { keepAwake, releaseAwake } from './keep-awake.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(__dirname, '..');
@@ -80,6 +81,7 @@ async function serveStatic(req, res) {
     // "Pretty" routes -> files.
     if (rel === '/') { res.writeHead(302, { Location: '/home' }); res.end(); return; }
     else if (rel === '/home') rel = '/index.html';
+    else if (rel === '/host') rel = '/host.html'; // host "screen": QR players scan
     else if (rel === '/join') rel = '/join.html';
     else if (rel.startsWith('/room/')) rel = '/room.html'; // SPA-ish: the room loads room.html
   }
@@ -162,9 +164,18 @@ server.listen(PORT, HOST, async () => {
   }
 
   if (IS_PACKAGED) {
+    // Prevent the host from idle-sleeping mid-game (released on exit below).
+    keepAwake();
     console.log('  Keep this window open. Close it to stop the server.\n');
-    openBrowser(`http://localhost:${PORT}/home`);
+    // The computer is just the host: open the QR screen players scan from phones.
+    openBrowser(`http://localhost:${PORT}/host`);
   } else {
     console.log('  Ctrl+C to stop.\n');
   }
 });
+
+// Let the machine sleep normally again once the server stops.
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => { releaseAwake(); process.exit(0); });
+}
+process.on('exit', releaseAwake);
