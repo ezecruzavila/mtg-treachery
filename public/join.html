@@ -31,8 +31,11 @@
     <div class="footer-note">
       Were you already in this room? You'll be reconnected automatically.
     </div>
+
+    <div class="version-footer" id="app-version"></div>
   </div>
 
+  <script type="module" src="/version.js"></script>
   <script type="module" src="/rules.js"></script>
   <script type="module">
     import { joinExisting, showError, getName, setName, hasSession, clearSession } from '/app.js';

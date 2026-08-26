@@ -44,8 +44,11 @@
     <div class="footer-note">
       Everyone on the same network can join. Only you can see your role.
     </div>
+
+    <div class="version-footer" id="app-version"></div>
   </div>
 
+  <script type="module" src="/version.js"></script>
   <script type="module" src="/rules.js"></script>
   <script type="module">
     import { createRoom, joinExisting, showError, getName, setName } from '/app.js';

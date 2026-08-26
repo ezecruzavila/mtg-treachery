@@ -1,6 +1,6 @@
 {
   "name": "mtg-treachery-lan",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "App casera para repartir los roles secretos de MTG Treachery en la red local",
   "type": "module",
   "engines": {

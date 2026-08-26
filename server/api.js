@@ -21,12 +21,17 @@ import {
  *  - closeRoomSockets(code): tells every socket in the room the room closed.
  *  - lanBaseUrl(): the base URL to share (used to build the QR).
  */
-export async function handleApi(req, res, { broadcast, closeRoomSockets, lanBaseUrl }) {
+export async function handleApi(req, res, { broadcast, closeRoomSockets, lanBaseUrl, version }) {
   const url = new URL(req.url, 'http://localhost');
   const path = url.pathname;
   if (!path.startsWith('/api/')) return false;
 
   try {
+    // GET /api/version  — app version for the footer (public)
+    if (path === '/api/version' && req.method === 'GET') {
+      return send(res, 200, { version: version || null });
+    }
+
     // POST /api/rooms  — create room (body may include rarity: U|R|M)
     if (path === '/api/rooms' && req.method === 'POST') {
       const body = await readJson(req);

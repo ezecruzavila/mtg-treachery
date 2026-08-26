@@ -6,6 +6,7 @@ import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import QRCode from 'qrcode';
+import pkg from '../package.json' with { type: 'json' };
 import { handleApi } from './api.js';
 import { attachWebSocket } from './ws.js';
 import { sweepRooms } from './rooms.js';
@@ -115,7 +116,7 @@ async function serveStatic(req, res) {
 
 const server = http.createServer(async (req, res) => {
   try {
-    const handled = await handleApi(req, res, { broadcast, closeRoomSockets, lanBaseUrl });
+    const handled = await handleApi(req, res, { broadcast, closeRoomSockets, lanBaseUrl, version: pkg.version });
     if (handled) return;
     await serveStatic(req, res);
   } catch (err) {
