@@ -69,6 +69,7 @@ function makePlayer(name) {
     name: String(name || '').trim().slice(0, 12) || 'Player',
     role: null,
     card: null, // URL of the assigned identity card image; set on deal
+    unveiled: false, // player has publicly revealed their identity (shared over WS)
     connected: false,
     lastSeen: now,
     joinedAt: now,
@@ -140,11 +141,27 @@ export function dealRoom(room, byPlayerId, { allowRedeal = false } = {}) {
   room.players.forEach((p, i) => {
     p.role = roles[i];
     p.card = cards[i];
+    // The Leader is public from the start; everyone else begins concealed.
+    p.unveiled = roles[i] === 'LEADER';
   });
   room.phase = 'dealt';
   room.dealtAt = Date.now();
   clearDealerTimer(room);
   return { ok: true, room };
+}
+
+/**
+ * Sets a player's public unveil state. Only valid once roles are dealt.
+ * The Leader is always public and cannot re-conceal.
+ * @returns {{ok:true, room:Room, player:Player}|{ok:false, error:string, status:number}}
+ */
+export function setUnveiled(room, player, unveiled) {
+  if (!room) return { ok: false, status: 404, error: 'Room not found.' };
+  if (!player) return { ok: false, status: 401, error: 'Not authenticated in this room.' };
+  if (room.phase !== 'dealt') return { ok: false, status: 409, error: 'Roles have not been dealt yet.' };
+  // The Leader is public by rule; ignore attempts to conceal them.
+  player.unveiled = player.role === 'LEADER' ? true : !!unveiled;
+  return { ok: true, room, player };
 }
 
 /**
@@ -230,8 +247,9 @@ export function markDisconnected(room, player, onChange) {
 
 /**
  * Builds the PUBLIC view of the room. This is the only place allowed to
- * serialize state to clients. It NEVER includes `role` or `token`; the only
- * reveal is `isLeader` once dealt (the Leader is public).
+ * serialize state to clients. It NEVER leaks `token`, nor a concealed player's
+ * `role`/`card`. Once dealt, a player who has unveiled makes their role and
+ * card image public (the Leader is unveiled automatically).
  *
  * @param {Room} room
  * @param {?Player} viewer  the player looking (to compute youCanDeal); optional
@@ -249,14 +267,21 @@ export function toPublicRoom(room, viewer = null) {
     youAreDealer: !!viewer && viewer.id === room.dealerId,
     youCanDeal: !!viewer && viewer.id === room.dealerId && room.phase === 'lobby' && canDeal(room.players.length),
     you: viewer ? { id: viewer.id, name: viewer.name } : null,
-    players: room.players.map((p) => ({
-      id: p.id,
-      name: p.name,
-      connected: p.connected,
-      isDealer: p.id === room.dealerId,
-      // The Leader is the ONLY public reveal, and only after dealing.
-      isLeader: dealt && p.role === 'LEADER',
-    })),
+    players: room.players.map((p) => {
+      const unveiled = dealt && !!p.unveiled;
+      return {
+        id: p.id,
+        name: p.name,
+        connected: p.connected,
+        isDealer: p.id === room.dealerId,
+        // The Leader is public by rule; anyone else becomes public by unveiling.
+        isLeader: dealt && p.role === 'LEADER',
+        unveiled,
+        // Only expose role/card once the player is publicly unveiled.
+        role: unveiled ? p.role : null,
+        card: unveiled ? p.card : null,
+      };
+    }),
   };
 }
 

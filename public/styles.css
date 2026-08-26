@@ -235,6 +235,44 @@ button.danger:hover { background: #d64535; }
   padding: 0;
   font-size: 1.05rem;
 }
+/* Role icon shown for unveiled players (crown / shield / dagger / snake). */
+.badge.role-badge {
+  background: transparent;
+  padding: 0;
+  font-size: 1.05rem;
+}
+/* An unveiled player's row is tappable to view their card. */
+.players li.revealed { cursor: pointer; }
+.pname.tappable {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+/* ---- Card viewer modal (an unveiled player's card, full size) ---- */
+.card-viewer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+}
+.card-viewer-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+.card-viewer-img {
+  width: min(82vw, 340px);
+  aspect-ratio: 5 / 7;
+  object-fit: cover;
+  border-radius: 4.5% / 3.2%;
+  box-shadow: var(--shadow);
+}
+.card-viewer-hint {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
 
 /* ---- Room code + QR ---- */
 .roomcode {

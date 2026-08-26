@@ -138,6 +138,11 @@ async function onState(room) {
       await fetchMyRole(room.dealtAt); // deal / re-deal: server is awake right now
     }
 
+    // Resync: if we unveiled while the host was asleep, the server may not know
+    // yet. Push our local state so the rest of the table sees us.
+    const me = room.you ? room.players.find((p) => p.id === room.you.id) : null;
+    if (me && unveiled && !me.unveiled && myRole !== 'LEADER') pushUnveil(true);
+
     renderRoleView(room);
     if (!wasDealt) {
       resetCardToBack();
@@ -238,6 +243,14 @@ function renderLobby(room) {
   }
 }
 
+// Icon shown next to a player once their identity is public (unveiled).
+const ROLE_ICON = {
+  LEADER: '👑',
+  GUARDIAN: '🛡️',
+  ASSASSIN: '🗡️',
+  TRAITOR: '🐍',
+};
+
 function renderPlayerList(ul, room) {
   ul.innerHTML = '';
   for (const p of room.players) {
@@ -249,7 +262,18 @@ function renderPlayerList(ul, room) {
     name.textContent = p.name;
     li.append(dot, name);
 
-    if (p.isLeader) li.append(badge('👑', 'leader crown-only'));
+    // Unveiled players show their role icon; the card is viewable on tap.
+    if (p.unveiled && p.role) {
+      li.classList.add('revealed');
+      name.classList.add('tappable');
+      li.append(badge(ROLE_ICON[p.role] || '❓', 'role-badge'));
+      name.addEventListener('click', () => showPlayerCard(p));
+      // The whole row is tappable for a bigger hit target.
+      li.addEventListener('click', (e) => {
+        if (e.target === name) return; // name handler already fires
+        showPlayerCard(p);
+      });
+    }
 
     ul.append(li);
   }
@@ -261,6 +285,24 @@ function badge(text, cls) {
   b.textContent = text;
   return b;
 }
+
+// ---- Card viewer (tap an unveiled player's name to see their card) ----
+const cardModal = el('card-modal');
+const cardModalImg = el('card-modal-img');
+const cardModalName = el('card-modal-name');
+
+function showPlayerCard(p) {
+  if (!p.card) return;
+  preload(p.card);
+  cardModalImg.src = p.card;
+  cardModalImg.alt = `${p.name}'s identity card`;
+  cardModalName.textContent = p.name;
+  cardModal.classList.remove('hidden');
+}
+function closeCardModal() {
+  cardModal.classList.add('hidden');
+}
+cardModal.addEventListener('click', closeCardModal); // tap anywhere to dismiss
 
 el('deal-btn').addEventListener('click', async () => {
   el('deal-btn').disabled = true;
@@ -359,14 +401,31 @@ function resetCardToBack() {
 }
 
 // ---- Unveil (reversible switch) ----
-// Unveil is PRIVATE to this player — no one else sees it — so it's purely
-// client-side. Keeping it local means it works even while the host is asleep.
+// Unveiling is now PUBLIC: it flips the card face-up locally (so it keeps
+// working even while the host sleeps) AND tells the server, so everyone at the
+// table sees this player's identity (icon + card). We keep the local flag too
+// for instant rendering and offline resilience.
 el('unveil-toggle').addEventListener('change', (e) => {
   unveiled = e.target.checked;
   setUnveil(CODE, unveiled);
   if (unveiled) lockFaceUp();
   else hideCard();
+  pushUnveil(unveiled);
 });
+
+// Publishes the unveil state to the server (best-effort; local state already
+// updated). Other players receive it over the socket.
+async function pushUnveil(value) {
+  try {
+    await fetch(`/api/rooms/${CODE}/unveil`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + session.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ unveiled: value }),
+    });
+  } catch {
+    /* host may be asleep; the local reveal still works, we'll resync on reconnect */
+  }
+}
 
 // ---- Confirmation modal (reused by Restart and End Game) ----
 const confirmModal = el('confirm-modal');

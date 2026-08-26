@@ -83,6 +83,15 @@
     </section>
   </div>
 
+  <!-- Card viewer: shown when tapping an unveiled player's name -->
+  <div id="card-modal" class="modal-backdrop hidden">
+    <div class="card-viewer">
+      <div class="card-viewer-name" id="card-modal-name"></div>
+      <img id="card-modal-img" class="card-viewer-img" alt="Identity card" />
+      <div class="card-viewer-hint">Tap anywhere to close</div>
+    </div>
+  </div>
+
   <!-- Confirmation modal (reused by Restart and End Game) -->
   <div id="confirm-modal" class="modal-backdrop hidden">
     <div class="modal">
