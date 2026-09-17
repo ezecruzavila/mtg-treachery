@@ -4,46 +4,49 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f1216" />
-  <title>MTG Treachery — Roles</title>
+  <title data-i18n="title.home">MTG Treachery — Roles</title>
+  <link rel="icon" href="/favicon.ico" type="image/png" sizes="any" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <div class="app">
     <div class="brand">
-      <h1>MTG Treachery</h1>
+      <div class="brand-title">
+        <img class="brand-logo" src="/assets/logo.png" alt="" width="40" height="40" />
+        <h1>MTG Treachery</h1>
+      </div>
     </div>
 
     <div id="error" class="error hidden"></div>
 
     <div class="card stack">
       <div>
-        <label for="name">Your name</label>
-        <input id="name" type="text" placeholder="e.g. Ann" autocomplete="off" maxlength="12" />
+        <label for="name" data-i18n="name.label">Your name</label>
+        <input id="name" type="text" data-i18n-placeholder="name.placeholder" placeholder="e.g. Ann" autocomplete="off" maxlength="12" />
       </div>
       <div>
-        <label>Card rarity</label>
+        <label data-i18n="rarity.label">Card rarity</label>
         <div class="segmented" id="rarity">
-          <button type="button" data-rarity="U" class="active">Uncommon</button>
-          <button type="button" data-rarity="R">Rare</button>
-          <button type="button" data-rarity="M">Mythic</button>
+          <button type="button" data-rarity="U" data-i18n="rarity.U" class="active">Uncommon</button>
+          <button type="button" data-rarity="R" data-i18n="rarity.R">Rare</button>
+          <button type="button" data-rarity="M" data-i18n="rarity.M">Mythic</button>
         </div>
       </div>
-      <button id="create-btn">Create room</button>
+      <button id="create-btn" data-i18n="home.create">Create room</button>
     </div>
 
-    <div class="divider">— or join a room —</div>
+    <div class="divider" data-i18n="home.orJoin">— or join a room —</div>
 
     <div class="card stack">
       <div>
-        <label for="code">Room code</label>
+        <label for="code" data-i18n="code.label">Room code</label>
         <input id="code" type="text" class="code-input" placeholder="ABCD" autocomplete="off" maxlength="4" inputmode="text" />
       </div>
-      <button id="join-btn" class="secondary">Join</button>
+      <button id="join-btn" class="secondary" data-i18n="join">Join</button>
     </div>
 
-    <div class="footer-note">
-      Everyone on the same network can join. Only you can see your role.
-    </div>
+    <div class="footer-note" data-i18n="home.footer">Anyone with the room code can join. Only you can see your role.</div>
 
     <div class="version-footer" id="app-version"></div>
   </div>
@@ -52,6 +55,7 @@
   <script type="module" src="/rules.js"></script>
   <script type="module">
     import { createRoom, joinExisting, showError, getName, setName } from '/app.js';
+    import { t } from '/i18n.js';
 
     const nameEl = document.getElementById('name');
     const codeEl = document.getElementById('code');
@@ -69,7 +73,7 @@
 
     document.getElementById('create-btn').addEventListener('click', async () => {
       const name = nameEl.value.trim();
-      if (!name) return showError('Enter your name first.');
+      if (!name) return showError(t('error.needName'));
       setName(name);
       await createRoom(name, rarity);
     });
@@ -77,8 +81,8 @@
     document.getElementById('join-btn').addEventListener('click', async () => {
       const name = nameEl.value.trim();
       const code = codeEl.value.trim().toUpperCase();
-      if (!name) return showError('Enter your name first.');
-      if (code.length !== 4) return showError('The code has 4 letters.');
+      if (!name) return showError(t('error.needName'));
+      if (code.length !== 4) return showError(t('error.codeLength'));
       setName(name);
       await joinExisting(code, name);
     });

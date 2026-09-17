@@ -130,8 +130,24 @@ connections for `node`. You must **allow it** so phones can reach the server.
 
 ```bash
 npm run dev     # auto-reload on edit (node --watch)
+npm run lab     # same, and opens the multi-user lab in the browser
 npm test        # dealing tests (official composition + randomness)
 ```
+
+### Multi-user lab
+
+Sessions live in `localStorage`, so two normal tabs on the same origin would
+share a seat. The **lab** (`/lab`, or `npm run lab`) shows 4–8 phone frames in
+one window. Each frame is a different player (`?slot=1` … `?slot=8` namespaces
+the session).
+
+- **Start table** — creates a room and seats everyone (Ann is the dealer).
+- **Blank phones** — empty home screens so you can walk through create / join.
+- **Pop out** — opens that player in a real window at phone size.
+
+You can also emulate users without the grid: open
+`http://localhost:3000/home?slot=alice` and `http://localhost:3000/home?slot=bob`
+in two windows.
 
 You can shorten the control-handover grace period for testing with
 `DEALER_GRACE_MS=1000 npm start` (default is 30000 ms).
@@ -149,8 +165,10 @@ public/
   index.html landing / create room
   join.html  join (QR target)
   room.html  lobby + "my role"
+  lab.html   multi-user emulator (several phones in one window)
   app.js     session (localStorage), fetch and navigation
   room.js    socket, lobby, card flip and unveil
+  lab.js     lab shell: seat N isolated iframes
   styles.css mobile-first styles
 ```
 

@@ -1,6 +1,6 @@
 {
   "name": "mtg-treachery-lan",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "App casera para repartir los roles secretos de MTG Treachery en la red local",
   "type": "module",
   "engines": {
@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
+    "lab": "node --watch server/index.js --lab",
     "test": "node --test",
     "manifest": "node scripts/gen-cards-manifest.js",
     "bundle:remote": "esbuild server/index.js --bundle --platform=node --format=cjs --target=node22 --outfile=dist/server.cjs --external:bufferutil --external:utf-8-validate --define:__EMBED_IMAGES__=false --define:import.meta.url=__IMPORT_META_URL__ --banner:js=\"const __IMPORT_META_URL__ = require('node:url').pathToFileURL(__filename).href;\"",

@@ -5,6 +5,8 @@
     "targets": ["node22-macos-arm64", "node22-win-x64"],
     "assets": [
       "public/**/*",
+      "assets/logo.png",
+      "assets/roles/**/*",
       "assets/cards/extras/card-back.png",
       "dist/cards-manifest.json"
     ],

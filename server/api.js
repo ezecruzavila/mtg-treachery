@@ -6,6 +6,7 @@ import {
   joinRoom,
   dealRoom,
   setUnveiled,
+  setDefeated,
   closeRoom,
   deleteRoom,
   findPlayerByToken,
@@ -75,6 +76,18 @@ export async function handleApi(req, res, { broadcast, closeRoomSockets, lanBase
       if (!result.ok) return send(res, result.status, { error: result.error });
       broadcast(result.room); // everyone sees the updated reveal state
       return send(res, 200, { unveiled: player.unveiled });
+    }
+
+    // POST /api/rooms/:code/defeat  — mark myself eliminated (authenticated)
+    m = path.match(/^\/api\/rooms\/([^/]+)\/defeat$/);
+    if (m && req.method === 'POST') {
+      const room = getRoom(m[1]);
+      const player = authPlayer(req, room);
+      if (!player) return send(res, 401, { error: 'Not authenticated in this room.' });
+      const result = setDefeated(room, player);
+      if (!result.ok) return send(res, result.status, { error: result.error });
+      broadcast(result.room);
+      return send(res, 200, { defeated: true, unveiled: player.unveiled });
     }
 
     // POST /api/rooms/:code/close  — close the room (authenticated, dealer only)

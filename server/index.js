@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { spawn } from 'node:child_process';
@@ -18,6 +18,8 @@ const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
 const ASSETS_DIR = path.join(ROOT_DIR, 'assets');
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0'; // listen on all interfaces so phones on the LAN can reach us
+const IS_PACKAGED = typeof process.pkg !== 'undefined';
+const IS_LAB = process.env.LAB === '1' || process.env.LAB === 'true' || process.argv.includes('--lab');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -71,10 +73,45 @@ function lanBaseUrl() {
   return PUBLIC_URL || `http://${lanIp || 'localhost'}:${PORT}`;
 }
 
+function isLoopbackReq(req) {
+  const host = String(req.headers.host || '').split(':')[0].toLowerCase();
+  const hostOk = host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '::1';
+  const ip = req.socket?.remoteAddress || '';
+  const ipOk = ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+  return hostOk && ipOk;
+}
+
+function isLabFile(rel) {
+  return rel === '/lab' || rel === '/lab.html' || rel === '/lab.js';
+}
+
 // Serves a static file from PUBLIC_DIR safely (no path traversal).
 async function serveStatic(req, res) {
   const url = new URL(req.url, 'http://localhost');
   let rel = decodeURIComponent(url.pathname);
+
+  // Tab icon: browsers ask for /favicon.ico even when a <link rel="icon"> exists.
+  if (rel === '/favicon.ico' || rel === '/apple-touch-icon.png') {
+    const logo = path.join(ASSETS_DIR, 'logo.png');
+    if (existsSync(logo)) {
+      const body = await readFile(logo);
+      res.writeHead(200, {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=86400',
+      });
+      res.end(body);
+      return;
+    }
+  }
+
+  // Dev-only multi-user emulator: never advertised, and never served on the LAN
+  // or in a packaged build. `npm run lab` + localhost only.
+  if (isLabFile(rel)) {
+    if (!IS_LAB || IS_PACKAGED || !isLoopbackReq(req)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Not found');
+      return;
+    }
+  }
 
   // Card images and other assets are served from the project's assets/ dir.
   const isAsset = rel.startsWith('/assets/');
@@ -88,6 +125,7 @@ async function serveStatic(req, res) {
     else if (rel === '/home') rel = '/index.html';
     else if (rel === '/host') rel = '/host.html'; // host "screen": QR players scan
     else if (rel === '/join') rel = '/join.html';
+    else if (rel === '/lab') rel = '/lab.html';
     else if (rel.startsWith('/room/')) rel = '/room.html'; // SPA-ish: the room loads room.html
   }
 
@@ -145,7 +183,16 @@ function openBrowser(url) {
   }
 }
 
-const IS_PACKAGED = typeof process.pkg !== 'undefined';
+/** True at most once per `cooldownMs` (survives `node --watch` restarts). */
+function shouldOpenOnce(name, cooldownMs) {
+  const stamp = path.join(os.tmpdir(), name);
+  try {
+    const prev = Number(readFileSync(stamp, 'utf8'));
+    if (Number.isFinite(prev) && Date.now() - prev < cooldownMs) return false;
+  } catch { /* first run */ }
+  try { writeFileSync(stamp, String(Date.now())); } catch { /* ignore */ }
+  return true;
+}
 
 server.listen(PORT, HOST, async () => {
   const line = '─'.repeat(52);
@@ -174,6 +221,13 @@ server.listen(PORT, HOST, async () => {
     console.log('  Keep this window open. Close it to stop the server.\n');
     // The computer is just the host: open the QR screen players scan from phones.
     openBrowser(`http://localhost:${PORT}/host`);
+  } else if (IS_LAB) {
+    console.log(`  Multi-user lab:   http://localhost:${PORT}/lab`);
+    console.log('  Ctrl+C to stop.\n');
+    // --watch restarts the process on every save; don't open a new tab each time.
+    if (shouldOpenOnce('mtg-treachery-lab-open', 60_000)) {
+      openBrowser(`http://localhost:${PORT}/lab`);
+    }
   } else {
     console.log('  Ctrl+C to stop.\n');
   }

@@ -49,43 +49,89 @@ body {
 
 /* ---- Header ---- */
 .brand {
-  text-align: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 4px;
   margin-top: 8px;
-  position: relative;
+}
+.brand-title {
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.brand-logo {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: block;
+  object-fit: contain;
 }
 .brand h1 {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   margin: 0;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 .brand .sub {
+  grid-column: 1 / -1;
   color: var(--muted);
   font-size: 0.85rem;
-  margin-top: 4px;
 }
-.info-btn {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  border-radius: 50%;
+.header-actions {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lang-select {
+  height: 36px;
+  width: auto;
+  min-width: 4.75rem;
+  max-width: 7.5rem;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.lang-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.rules-btn {
+  width: auto;
+  height: 36px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  border-radius: 10px;
   background: transparent;
   border: 1px solid var(--border);
   color: var(--muted);
-  font-size: 1.2rem;
-  line-height: 1;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
 }
-/* Keep the vertical-centering transform on hover/active so the button doesn't
-   jump or shrink when tapped (the global button:active scale would override it). */
-.info-btn:hover { background: var(--panel-2); color: var(--text); }
-.info-btn:active { transform: translateY(-50%); background: var(--panel-2); }
+.rules-btn:hover { background: var(--panel-2); color: var(--text); }
+.rules-btn:active { transform: none; background: var(--panel-2); }
 
 /* ---- Panels ---- */
 .card {
@@ -229,17 +275,14 @@ button.danger:hover { background: #d64535; }
 }
 .badge.leader { background: var(--leader); color: #2a2000; font-weight: 700; }
 .badge.you { background: var(--accent); }
-/* The Leader badge is crown-only; render it without the padding of a text pill. */
-.badge.leader.crown-only {
-  background: transparent;
-  padding: 0;
-  font-size: 1.05rem;
-}
-/* Role icon shown for unveiled players (crown / shield / dagger / snake). */
-.badge.role-badge {
-  background: transparent;
-  padding: 0;
-  font-size: 1.05rem;
+.role-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+  pointer-events: none;
 }
 /* An unveiled player's row is tappable to view their card. */
 .players li.revealed { cursor: pointer; }
@@ -248,6 +291,35 @@ button.danger:hover { background: #d64535; }
   text-decoration-style: dotted;
   text-underline-offset: 3px;
 }
+.players li.defeated {
+  justify-content: center;
+}
+.players li.defeated .dot,
+.players li.defeated .pname {
+  display: none;
+}
+.badge.defeated-badge {
+  background: var(--danger);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.role-counts {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  gap: 0.35em;
+  margin-bottom: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.role-count-sep { color: var(--muted); font-weight: 400; }
+.role-count.zero { opacity: 0.4; }
 
 /* ---- Card viewer modal (an unveiled player's card, full size) ---- */
 .card-viewer {
@@ -421,10 +493,51 @@ button.danger:hover { background: #d64535; }
 .modal h3 { margin: 0 0 10px; }
 .modal p { color: var(--muted); font-size: 0.92rem; line-height: 1.5; margin: 0 0 18px; }
 .modal .row { display: flex; gap: 10px; }
+.info-modal {
+  max-height: min(88dvh, 640px);
+  overflow: auto;
+}
 
 /* Rules list inside the info modal */
+.rules-heading {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent-hi);
+  margin: 0 0 8px;
+}
+.rules-heading + .rules-list { margin-top: 0; }
+.info-modal .rules-heading:not(:first-child) {
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.rules-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 16px;
+  font-size: 0.82rem;
+}
+.rules-table th,
+.rules-table td {
+  padding: 6px 4px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+.rules-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.rules-table td:first-child,
+.rules-table th:first-child {
+  text-align: left;
+  font-weight: 600;
+}
 .rules-list {
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   padding-left: 20px;
   display: flex;
   flex-direction: column;
@@ -469,6 +582,7 @@ button.danger:hover { background: #d64535; }
   margin-top: auto;
   padding-top: 12px;
 }
+.footer-note a { color: var(--accent-hi); }
 /* App version, pinned to the bottom of the page */
 .version-footer {
   text-align: center;

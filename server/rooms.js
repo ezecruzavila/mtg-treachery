@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { dealRoles, canDeal } from './deal.js';
+import { dealRoles, canDeal, ROLE_TABLE } from './deal.js';
 import { assignCards, normalizeRarity, DEFAULT_RARITY } from './cards.js';
 
 /**
@@ -26,6 +26,9 @@ const rooms = new Map();
  * @property {string} token     secret bearer that identifies that browser
  * @property {string} name
  * @property {?string} role     SECRET — server-only; null until dealt
+ * @property {?string} card     identity card URL; public only once unveiled
+ * @property {boolean} unveiled public reveal of identity (Leader starts true)
+ * @property {boolean} defeated eliminated this deal; identity stays public
  * @property {boolean} connected presence based on a live socket
  * @property {number} lastSeen  Date.now() of the last socket close
  * @property {number} joinedAt  for seat ordering and dealer succession
@@ -70,6 +73,7 @@ function makePlayer(name) {
     role: null,
     card: null, // URL of the assigned identity card image; set on deal
     unveiled: false, // player has publicly revealed their identity (shared over WS)
+    defeated: false, // eliminated this game; identity is public
     connected: false,
     lastSeen: now,
     joinedAt: now,
@@ -143,6 +147,7 @@ export function dealRoom(room, byPlayerId, { allowRedeal = false } = {}) {
     p.card = cards[i];
     // The Leader is public from the start; everyone else begins concealed.
     p.unveiled = roles[i] === 'LEADER';
+    p.defeated = false;
   });
   room.phase = 'dealt';
   room.dealtAt = Date.now();
@@ -159,8 +164,25 @@ export function setUnveiled(room, player, unveiled) {
   if (!room) return { ok: false, status: 404, error: 'Room not found.' };
   if (!player) return { ok: false, status: 401, error: 'Not authenticated in this room.' };
   if (room.phase !== 'dealt') return { ok: false, status: 409, error: 'Roles have not been dealt yet.' };
+  if (player.defeated) {
+    player.unveiled = true;
+    return { ok: true, room, player };
+  }
   // The Leader is public by rule; ignore attempts to conceal them.
   player.unveiled = player.role === 'LEADER' ? true : !!unveiled;
+  return { ok: true, room, player };
+}
+
+/**
+ * Marks this player eliminated: identity becomes public and stays that way
+ * until the next deal. Anyone in the room may mark themselves.
+ */
+export function setDefeated(room, player) {
+  if (!room) return { ok: false, status: 404, error: 'Room not found.' };
+  if (!player) return { ok: false, status: 401, error: 'Not authenticated in this room.' };
+  if (room.phase !== 'dealt') return { ok: false, status: 409, error: 'Roles have not been dealt yet.' };
+  player.defeated = true;
+  player.unveiled = true;
   return { ok: true, room, player };
 }
 
@@ -245,6 +267,19 @@ export function markDisconnected(room, player, onChange) {
 
 // ---- Public serialization (the ONLY place that exposes state to others) ----
 
+/** Remaining Traitor/Assassin/Guardian seats still in play (Leader omitted). */
+function remainingRoleCounts(room) {
+  const mix = ROLE_TABLE[room.players.length];
+  if (!mix) return null;
+  const counts = { TRAITOR: mix.TRAITOR, ASSASSIN: mix.ASSASSIN, GUARDIAN: mix.GUARDIAN };
+  if (room.phase !== 'dealt') return counts;
+  for (const p of room.players) {
+    if (!p.defeated || counts[p.role] == null) continue;
+    counts[p.role] = Math.max(0, counts[p.role] - 1);
+  }
+  return counts;
+}
+
 /**
  * Builds the PUBLIC view of the room. This is the only place allowed to
  * serialize state to clients. It NEVER leaks `token`, nor a concealed player's
@@ -267,6 +302,8 @@ export function toPublicRoom(room, viewer = null) {
     youAreDealer: !!viewer && viewer.id === room.dealerId,
     youCanDeal: !!viewer && viewer.id === room.dealerId && room.phase === 'lobby' && canDeal(room.players.length),
     you: viewer ? { id: viewer.id, name: viewer.name } : null,
+    // Remaining public mix (no Leader — always 1). Defeated seats drop out.
+    roleCounts: remainingRoleCounts(room),
     players: room.players.map((p) => {
       const unveiled = dealt && !!p.unveiled;
       return {
@@ -274,6 +311,7 @@ export function toPublicRoom(room, viewer = null) {
         name: p.name,
         connected: p.connected,
         isDealer: p.id === room.dealerId,
+        defeated: dealt && !!p.defeated,
         // The Leader is public by rule; anyone else becomes public by unveiling.
         isLeader: dealt && p.role === 'LEADER',
         unveiled,

@@ -4,7 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f1216" />
-  <title>Host — MTG Treachery</title>
+  <title data-i18n="title.host">Host — MTG Treachery</title>
+  <link rel="icon" href="/favicon.ico" type="image/png" sizes="any" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="stylesheet" href="/styles.css" />
   <style>
     /* The host screen is meant to be read from across a table, so the QR is
@@ -16,18 +18,21 @@
 <body>
   <div class="app">
     <div class="brand">
-      <h1>MTG Treachery</h1>
-      <div class="sub">Scan to join from your phone</div>
+      <div class="brand-title">
+        <img class="brand-logo" src="/assets/logo.png" alt="" width="40" height="40" />
+        <h1>MTG Treachery</h1>
+      </div>
+      <div class="sub" data-i18n="host.sub">Scan to join from your phone</div>
     </div>
 
     <div id="error" class="error hidden"></div>
 
     <div class="card stack">
       <div class="qr-wrap host-qr">
-        <img id="qr" alt="QR to open the game" />
+        <img id="qr" data-i18n-alt="host.qrAlt" alt="QR to open the game" />
         <div class="lanurl" id="lanurl">Starting…</div>
       </div>
-      <div class="footer-note center host-hint">
+      <div class="footer-note center host-hint" data-i18n="host.hint">
         This computer only hosts the game. Everyone plays from their phone —
         scan the code or open the address above.
       </div>
@@ -37,18 +42,21 @@
   </div>
 
   <script type="module" src="/version.js"></script>
+  <script type="module" src="/rules.js"></script>
 
   <script type="module">
+    import { t } from '/i18n.js';
+    const lanurl = document.getElementById('lanurl');
+    lanurl.textContent = t('host.starting');
     // Fetch the QR + URL for the LAN home page and render them big.
     fetch('/api/host-qr')
       .then((r) => r.json())
       .then((d) => {
         if (d.dataUrl) document.getElementById('qr').src = d.dataUrl;
-        document.getElementById('lanurl').textContent = d.joinUrl || '';
+        lanurl.textContent = d.joinUrl || '';
       })
       .catch(() => {
-        document.getElementById('lanurl').textContent =
-          'Could not detect a network address.';
+        lanurl.textContent = t('host.noLan');
       });
   </script>
 </body>
