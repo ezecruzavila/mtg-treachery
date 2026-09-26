@@ -97,7 +97,8 @@ body {
   width: auto;
   min-width: 4.75rem;
   max-width: 7.5rem;
-  padding: 0 6px;
+  /* Show the locale text; drop the native dropdown arrow (appearance: none). */
+  padding: 0 10px;
   border-radius: 10px;
   background: var(--panel);
   color: var(--text);
@@ -107,8 +108,13 @@ body {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  text-align: center;
   flex-shrink: 0;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
+.lang-select:hover { border-color: var(--accent); }
 .lang-select:focus {
   outline: none;
   border-color: var(--accent);
