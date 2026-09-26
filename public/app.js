@@ -51,6 +51,54 @@ export function hasSession(code, slot) {
   return !!(s && s.token);
 }
 
+/**
+ * Lists room codes with a saved session for the current slot. Skips the
+ * name/role/unveil/locale keys (only bare `treachery:CODE` entries match).
+ */
+export function listRoomCodes(slot) {
+  const s = slot === undefined ? currentSlot() : slot;
+  const suffix = s ? `::${s}` : '';
+  const codes = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith(SESSION_PREFIX)) continue;
+    let rest = k.slice(SESSION_PREFIX.length);
+    if (suffix) {
+      if (!rest.endsWith(suffix)) continue;
+      rest = rest.slice(0, -suffix.length);
+    } else if (rest.includes('::')) {
+      continue; // belongs to a lab slot, not this (unscoped) context
+    }
+    if (/^[A-Z]{4}$/.test(rest)) codes.push(rest);
+  }
+  return codes;
+}
+
+/**
+ * Probes every saved session against the server. Rooms that no longer exist
+ * (404) or whose token is no longer valid get their stale session cleared;
+ * transient network errors are left untouched. Resolves to the live ones.
+ * @returns {Promise<Array<{code:string, name:string}>>}
+ */
+export async function findResumableRooms(slot) {
+  const live = [];
+  for (const code of listRoomCodes(slot)) {
+    const session = getSession(code, slot);
+    if (!session?.token) { clearSession(code, slot); continue; }
+    try {
+      const res = await fetch(`/api/rooms/${code}`, { headers: { Authorization: 'Bearer ' + session.token } });
+      if (res.status === 404) { clearSession(code, slot); continue; } // room is gone
+      if (!res.ok) continue; // transient server error: keep the session
+      const data = await res.json();
+      if (!data.you) { clearSession(code, slot); continue; } // token no longer recognised
+      live.push({ code, name: session.name || data.you.name || '' });
+    } catch {
+      // Network error — don't destroy a possibly-valid session.
+    }
+  }
+  return live;
+}
+
 /** Clears the session for a room (e.g. invalid token after a server restart). */
 export function clearSession(code, slot) {
   const c = code.toUpperCase();

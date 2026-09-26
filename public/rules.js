@@ -59,6 +59,11 @@ function rulesModalHtml() {
         <li>${t('info.unveil')}</li>
         <li>${t('info.undercover')}</li>
       </ul>
+      <h3 class="rules-heading">${t('info.rarity')}</h3>
+      <ul class="rules-list">
+        <li>${t('info.rarity.complexity')}</li>
+        <li>${t('info.rarity.inclusive')}</li>
+      </ul>
       <button id="rules-close" class="secondary">${t('info.close')}</button>
     </div>
   </div>`;
@@ -93,6 +98,9 @@ function install() {
     brand.appendChild(actions);
   }
 
+  // The language selector normally lives in the header, but a page may offer a
+  // dedicated slot (e.g. the home footer) via id="lang-slot" to host it instead.
+  const langHost = document.getElementById('lang-slot') || actions;
   let langSelect = document.getElementById('lang-select');
   if (!langSelect) {
     langSelect = document.createElement('select');
@@ -105,7 +113,7 @@ function install() {
       langSelect.appendChild(opt);
     }
     langSelect.addEventListener('change', () => setLocale(langSelect.value));
-    actions.appendChild(langSelect);
+    langHost.appendChild(langSelect);
   }
   langSelect.value = getLocale();
   langSelect.setAttribute('aria-label', t('lang.label'));

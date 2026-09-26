@@ -1,9 +1,8 @@
-// Client translations. Locale is a user preference (not per-room, not per-lab-slot).
+// Client translations. The app always starts in en-US; the selector switches
+// the language for the current session only (never persisted across reloads).
 
 export const LOCALES = ['en-US', 'es-AR'];
 export const DEFAULT_LOCALE = 'en-US';
-
-const STORAGE_KEY = 'treachery:locale';
 
 const dict = {
   'en-US': {
@@ -32,6 +31,9 @@ const dict = {
     'info.win.traitor': 'A <b>Traitor</b> wins if they are the last player standing <i>(this implies killing the Assassins before the Leader).</i>',
     'info.unveil': '<b>Unveil {cost}:</b> Any time you have priority you may turn a face-down identity card with an unveil ability. This is a special action: it doesn\'t use the stack.',
     'info.undercover': '<b>Undercover:</b> Special unveil restriction. Unveil only if another non-Leader identity has been revealed or if a player other than you attacked a Leader this game.',
+    'info.rarity': 'Card rarity',
+    'info.rarity.complexity': 'Rarity reflects how <b>complex</b> an identity is to play — not how <b>powerful</b> it is.',
+    'info.rarity.inclusive': 'A higher rarity is a ceiling: it adds those cards on top of the lower rarities.',
     'name.label': 'Your name',
     'name.placeholder': 'e.g. Ann',
     'name.placeholderJoin': 'e.g. Bob',
@@ -39,6 +41,10 @@ const dict = {
     'rarity.U': 'Uncommon',
     'rarity.R': 'Rare',
     'rarity.M': 'Mythic',
+    'home.resumeTitle': 'Rejoin your game',
+    'home.resumeBtn': 'Back to room {code}',
+    'example.btn': 'Example',
+    'example.title': 'A 5-player table',
     'home.create': 'Create room',
     'home.orJoin': '— or join a room —',
     'code.label': 'Room code',
@@ -65,7 +71,8 @@ const dict = {
     'room.flipHelp': 'Tap the card to flip it. It hides itself after 10 s.',
     'room.unveil': 'Unveil',
     'room.unveilSub': 'Keeps your card face-up',
-    'room.defeated': 'Defeated',
+    'room.surrender': 'Surrender',
+    'room.surrendered': 'Surrendered',
     'room.count.traitor': 'Traitors',
     'room.count.assassin': 'Assassins',
     'room.count.guardian': 'Guardians',
@@ -84,7 +91,7 @@ const dict = {
     'confirm.restartText': 'This deals fresh roles to everyone at the table. Continue?',
     'confirm.endTitle': 'End game?',
     'confirm.endText': 'This closes the room and sends everyone back to the start. Continue?',
-    'confirm.defeatTitle': 'Mark yourself defeated?',
+    'confirm.defeatTitle': 'Surrender?',
     'confirm.defeatText': 'Your identity will be revealed to the table. Continue?',
     'error.create': 'Could not create the room.',
     'error.join': 'Could not join the room.',
@@ -134,6 +141,9 @@ const dict = {
     'info.win.traitor': 'Un <b>Traidor</b> gana si es el último jugador en pie <i>(eso implica matar a los Asesinos antes que al Líder).</i>',
     'info.unveil': '<b>Revelar {cost}:</b> Cuando tengas prioridad, podés girar una carta de identidad boca abajo con una habilidad de revelar. Es una acción especial: no usa la pila.',
     'info.undercover': '<b>Encubierto:</b> Restricción especial de revelar. Solo revelás si otra identidad que no sea el Líder ya fue revelada, o si un jugador que no seas vos atacó a un Líder en esta partida.',
+    'info.rarity': 'Rareza de las cartas',
+    'info.rarity.complexity': 'La rareza indica qué tan <b>compleja</b> es una identidad de jugar, no qué tan <b>fuerte</b> es.',
+    'info.rarity.inclusive': 'Una rareza más alta es un tope: suma esas cartas sobre las de rareza menor.',
     'name.label': 'Tu nombre',
     'name.placeholder': 'ej. Ann',
     'name.placeholderJoin': 'ej. Bob',
@@ -141,6 +151,10 @@ const dict = {
     'rarity.U': 'Infrecuente',
     'rarity.R': 'Rara',
     'rarity.M': 'Mítica',
+    'home.resumeTitle': 'Volvé a tu partida',
+    'home.resumeBtn': 'Volver a la sala {code}',
+    'example.btn': 'Ejemplo',
+    'example.title': 'Una mesa de 5 jugadores',
     'home.create': 'Crear sala',
     'home.orJoin': '— o unirse a una sala —',
     'code.label': 'Código de sala',
@@ -167,7 +181,8 @@ const dict = {
     'room.flipHelp': 'Tocá la carta para darla vuelta. Se oculta sola a los 10 s.',
     'room.unveil': 'Revelar',
     'room.unveilSub': 'Deja tu carta boca arriba',
-    'room.defeated': 'Derrotado',
+    'room.surrender': 'Rendirse',
+    'room.surrendered': 'Se rindió',
     'room.count.traitor': 'Traidores',
     'room.count.assassin': 'Asesinos',
     'room.count.guardian': 'Guardianes',
@@ -186,7 +201,7 @@ const dict = {
     'confirm.restartText': 'Reparte roles nuevos a todos en la mesa. ¿Seguimos?',
     'confirm.endTitle': '¿Terminar la partida?',
     'confirm.endText': 'Cierra la sala y manda a todos al inicio. ¿Seguimos?',
-    'confirm.defeatTitle': '¿Marcarte como derrotado?',
+    'confirm.defeatTitle': '¿Rendirte?',
     'confirm.defeatText': 'Tu identidad se va a revelar en la mesa. ¿Seguimos?',
     'error.create': 'No se pudo crear la sala.',
     'error.join': 'No se pudo unir a la sala.',
@@ -229,27 +244,14 @@ const SERVER_ERRORS = {
 
 const listeners = new Set();
 
-function readStored() {
-  try {
-    return localStorage.getItem(STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function guessLocale() {
-  const nav = (typeof navigator !== 'undefined' && (navigator.language || navigator.userLanguage)) || '';
-  return nav.toLowerCase().startsWith('es') ? 'es-AR' : DEFAULT_LOCALE;
-}
-
 function normalize(value) {
   return LOCALES.includes(value) ? value : DEFAULT_LOCALE;
 }
 
-let locale = normalize(readStored() || guessLocale());
-try {
-  if (!readStored()) localStorage.setItem(STORAGE_KEY, locale);
-} catch { /* ignore */ }
+// The app always starts in en-US. A language change made from the selector
+// applies only to the current session (it is intentionally NOT persisted), so
+// every fresh load is en-US again regardless of the browser language.
+let locale = DEFAULT_LOCALE;
 
 export function getLocale() {
   return locale;
@@ -306,22 +308,13 @@ function emit() {
   for (const fn of listeners) fn(locale);
 }
 
+// A language change lives only for the current session — never persisted, so a
+// reload returns to en-US. See the `locale` initialization above.
 export function setLocale(next) {
   const loc = normalize(next);
   if (loc === locale) return;
   locale = loc;
-  try { localStorage.setItem(STORAGE_KEY, locale); } catch { /* ignore */ }
   emit();
-}
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => {
-    if (e.key !== STORAGE_KEY || !e.newValue) return;
-    const loc = normalize(e.newValue);
-    if (loc === locale) return;
-    locale = loc;
-    emit();
-  });
 }
 
 const missing = Object.keys(dict['en-US']).filter((k) => !(k in dict['es-AR']));

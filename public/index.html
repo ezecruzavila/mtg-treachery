@@ -20,6 +20,11 @@
 
     <div id="error" class="error hidden"></div>
 
+    <div id="resume" class="card stack hidden">
+      <div class="section-title center" data-i18n="home.resumeTitle">Rejoin your game</div>
+      <div id="resume-list" class="stack"></div>
+    </div>
+
     <div class="card stack">
       <div>
         <label for="name" data-i18n="name.label">Your name</label>
@@ -48,18 +53,45 @@
 
     <div class="footer-note" data-i18n="home.footer">Anyone with the room code can join. Only you can see your role.</div>
 
-    <div class="version-footer" id="app-version"></div>
+    <div class="home-footer">
+      <div class="lang-slot" id="lang-slot"></div>
+      <div class="version-footer" id="app-version"></div>
+    </div>
   </div>
 
   <script type="module" src="/version.js"></script>
   <script type="module" src="/rules.js"></script>
+  <script type="module" src="/example.js"></script>
   <script type="module">
-    import { createRoom, joinExisting, showError, getName, setName } from '/app.js';
-    import { t } from '/i18n.js';
+    import { createRoom, joinExisting, showError, getName, setName, findResumableRooms, withSlot } from '/app.js';
+    import { t, onLocaleChange } from '/i18n.js';
 
     const nameEl = document.getElementById('name');
     const codeEl = document.getElementById('code');
     nameEl.value = getName();
+
+    // Offer to rejoin any room this browser still has a valid session for.
+    // The token (not the code) is what lets a player back into a game already
+    // in progress, so this is the only reliable way back after an accidental exit.
+    async function renderResumable() {
+      const box = document.getElementById('resume');
+      const list = document.getElementById('resume-list');
+      const rooms = await findResumableRooms();
+      list.innerHTML = '';
+      if (!rooms.length) { box.classList.add('hidden'); return; }
+      for (const room of rooms) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = t('home.resumeBtn', { code: room.code });
+        btn.addEventListener('click', () => {
+          location.replace(withSlot(`/room/${room.code}`));
+        });
+        list.append(btn);
+      }
+      box.classList.remove('hidden');
+    }
+    renderResumable();
+    onLocaleChange(renderResumable); // relabel buttons when the language switches
 
     // Rarity segmented control (incremental: U / R+U / M+R+U). Default: Uncommon.
     let rarity = 'U';

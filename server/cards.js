@@ -154,6 +154,41 @@ export function assignCards(roles, rarity) {
   });
 }
 
+/**
+ * Fixed sample table for the home "Example" popup: four non-leader identities
+ * plus a Leader, all uncommon. Cards are chosen by their catalog number so the
+ * illustration is stable. URLs come from the same index as real cards, so they
+ * resolve correctly in every build flavor (local assets or the remote CDN).
+ */
+const EXAMPLE_CARDS = [
+  { role: 'ASSASSIN', num: '046' },
+  { role: 'ASSASSIN', num: '047' },
+  { role: 'GUARDIAN', num: '006' },
+  { role: 'TRAITOR', num: '023' },
+];
+const EXAMPLE_LEADER = { role: 'LEADER', num: '059' };
+
+/** Finds an uncommon card URL by its catalog number prefix, or null. */
+function findCardUrl(role, num) {
+  const urls = (index[role] && index[role].uncommon) || [];
+  const prefix = String(num) + ' ';
+  for (const url of urls) {
+    const file = decodeURIComponent(url.split('/').pop() || '');
+    if (file.startsWith(prefix)) return url;
+  }
+  return null;
+}
+
+/** The example table payload: the four face-down-able cards plus the Leader. */
+export function exampleTable() {
+  const map = ({ role, num }) => ({ role, url: findCardUrl(role, num) });
+  return {
+    cardBack: CARD_BACK_URL,
+    cards: EXAMPLE_CARDS.map(map),
+    leader: map(EXAMPLE_LEADER),
+  };
+}
+
 /** For diagnostics/tests: pool sizes per role at each level. */
 export function poolSizes() {
   const out = {};

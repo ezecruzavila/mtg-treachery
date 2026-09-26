@@ -310,7 +310,7 @@ function renderPlayerList(ul, room) {
         showPlayerCard(p);
       });
     }
-    if (p.defeated) li.append(badge(t('room.defeated'), 'defeated-badge'));
+    if (p.defeated) li.append(badge(t('room.surrendered'), 'defeated-badge'));
 
     ul.append(li);
   }

@@ -407,6 +407,45 @@ button.danger:hover { background: #d64535; }
 }
 .role-card .front { transform: rotateY(180deg); }
 
+/* ---- Example table popup (home only) ---- */
+.ex-modal { max-width: 340px; }
+.ex-board {
+  perspective: 1400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  margin-bottom: 16px;
+}
+/* Every example card shares one size and reuses the .role-card flip machinery. */
+.ex-card {
+  width: 84px;
+  cursor: default;
+}
+/* Two rows of two non-leader identities, all lying perpendicular (landscape).
+   Rotated 90°, each card is ~118px wide but keeps an 84px layout box, so the
+   two cards in a row would overlap by ~34px at gap:0. A large gap offsets that
+   excess and leaves real space between them. The left column faces one way, the
+   right column the opposite — like players seated across the table. */
+.ex-pair {
+  display: flex;
+  gap: 50px;
+  /* Collapse the rotated cards' extra portrait height so the visible landscape
+     footprint drives row spacing (84×118 box → ~84px tall visually). */
+  height: 84px;
+  align-items: center;
+}
+.ex-pair .ex-card {
+  margin: 0;
+}
+.ex-pair .ex-card:first-child { transform: rotate(90deg); }
+.ex-pair .ex-card:last-child { transform: rotate(-90deg); }
+.ex-pair .ex-card:first-child.face-up { transform: rotate(90deg) rotateY(180deg); }
+.ex-pair .ex-card:last-child.face-up { transform: rotate(-90deg) rotateY(180deg); }
+/* The Leader is the only upright (portrait) card, centered between the rows. */
+.ex-leader { display: flex; justify-content: center; }
+
 .role-help {
   text-align: center;
   color: var(--muted);
@@ -583,6 +622,17 @@ button.danger:hover { background: #d64535; }
   padding-top: 12px;
 }
 .footer-note a { color: var(--accent-hi); }
+/* Home footer: hosts the language selector above the app version. */
+.home-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+}
+.home-footer .version-footer { margin-top: 0; }
+.lang-slot { display: flex; justify-content: center; }
 /* App version, pinned to the bottom of the page */
 .version-footer {
   text-align: center;
