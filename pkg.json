@@ -7,7 +7,7 @@
       "public/**/*",
       "assets/logo.png",
       "assets/roles/**/*",
-      "assets/cards/extras/card-back.png",
+      "assets/cards/extras/card-back.webp",
       "dist/cards-manifest.json"
     ],
     "outputPath": "dist"

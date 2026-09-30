@@ -25,7 +25,7 @@ for (const [role, dirName] of Object.entries(ROLE_DIR)) {
     const dir = path.join(CARDS_DIR, dirName, folder);
     let files = [];
     try {
-      files = readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.png'));
+      files = readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.webp'));
     } catch {
       files = [];
     }

@@ -30,7 +30,7 @@ export const RARITY_LEVELS = {
 export const DEFAULT_RARITY = 'U';
 
 /** Public URL path for the shared card back. */
-export const CARD_BACK_URL = '/assets/cards/extras/card-back.png';
+export const CARD_BACK_URL = assetUrl('cards', 'extras', 'card-back.webp');
 
 /**
  * Index built once at startup: index[ROLE][rarityFolder] = [urlPath, ...].
@@ -50,18 +50,20 @@ const isPackaged = typeof process.pkg !== 'undefined';
 const REMOTE = isPackaged && !EMBED_IMAGES;
 const REMOTE_BASE = 'https://www.mtgtreachery.net/images/cards/en/trd';
 
+function assetUrl(...segments) {
+  return '/' + ['assets', ...segments].map(encodeURIComponent).join('/');
+}
+
 function toUrl(role, rarityFolder, file) {
   if (REMOTE) {
-    // Local name: "050 - Leader - (U) - The Blood Empress.png"
+    // Local name: "050 - Leader - (U) - The Blood Empress.webp"
     // Remote name: "050 - Leader - The Blood Empress.jpg" (no rarity tag, .jpg)
     const remoteName = file
       .replace(/ - \([URMS]\) - /, ' - ') // collapse " - (X) - " to a single " - "
-      .replace(/\.png$/i, '.jpg');
+      .replace(/\.(png|webp)$/i, '.jpg');
     return `${REMOTE_BASE}/${encodeURIComponent(remoteName)}`;
   }
-  // Dev: served statically at /assets/... ; encode each segment for spaces/() etc.
-  const parts = ['assets', 'cards', ROLE_DIR[role], rarityFolder, file].map(encodeURIComponent);
-  return '/' + parts.join('/');
+  return assetUrl('cards', ROLE_DIR[role], rarityFolder, file);
 }
 
 // When packaged with pkg, readdirSync on the virtual snapshot fs is unreliable,
@@ -88,7 +90,7 @@ function buildIndex() {
       } else {
         const dir = path.join(CARDS_DIR, ROLE_DIR[role], folder);
         try {
-          files = readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.png'));
+          files = readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.webp'));
         } catch {
           files = []; // folder may not exist (e.g. no mythic for some role)
         }
