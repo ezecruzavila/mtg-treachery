@@ -87,6 +87,21 @@ function renderRulesModal() {
   modal.addEventListener('click', (e) => { if (e.target === modal) closeRules(); });
 }
 
+/** Bottom row that holds the language selector. Pages may supply #lang-slot. */
+function ensureLangSlot(fallback) {
+  let slot = document.getElementById('lang-slot');
+  if (slot) return slot;
+  const app = document.querySelector('.app');
+  if (!app) return fallback;
+  slot = document.createElement('div');
+  slot.id = 'lang-slot';
+  slot.className = 'lang-slot';
+  const version = document.getElementById('app-version');
+  if (version && version.parentElement === app) app.insertBefore(slot, version);
+  else app.appendChild(slot);
+  return slot;
+}
+
 function install() {
   const brand = document.querySelector('.brand');
   if (!brand) return;
@@ -98,9 +113,9 @@ function install() {
     brand.appendChild(actions);
   }
 
-  // The language selector normally lives in the header, but a page may offer a
-  // dedicated slot (e.g. the home footer) via id="lang-slot" to host it instead.
-  const langHost = document.getElementById('lang-slot') || actions;
+  // Language sits on the bottom row (a page may already provide #lang-slot).
+  // The card gallery button shares that row, on the right.
+  const langHost = ensureLangSlot(actions);
   let langSelect = document.getElementById('lang-select');
   if (!langSelect) {
     langSelect = document.createElement('select');

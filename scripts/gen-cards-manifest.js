@@ -15,7 +15,7 @@ const OUT_DIR = path.join(ROOT, 'dist');
 
 // Must match cards.js.
 const ROLE_DIR = { LEADER: 'Leader', GUARDIAN: 'Guardian', ASSASSIN: 'Assassin', TRAITOR: 'Traitor' };
-const FOLDERS = ['uncommon', 'rare', 'mythic'];
+const FOLDERS = ['uncommon', 'rare', 'mythic', 'special'];
 
 const manifest = {};
 let total = 0;

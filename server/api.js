@@ -1,5 +1,5 @@
 import QRCode from 'qrcode';
-import { CARD_BACK_URL, exampleTable } from './cards.js';
+import { CARD_BACK_URL, exampleTable, cardCatalog } from './cards.js';
 import {
   createRoom,
   getRoom,
@@ -36,6 +36,11 @@ export async function handleApi(req, res, { broadcast, closeRoomSockets, lanBase
     // GET /api/example  — fixed sample table for the home "Example" popup (public)
     if (path === '/api/example' && req.method === 'GET') {
       return send(res, 200, exampleTable());
+    }
+
+    // GET /api/catalog  — every identity card, grouped by role (public)
+    if (path === '/api/catalog' && req.method === 'GET') {
+      return send(res, 200, cardCatalog());
     }
 
     // POST /api/rooms  — create room (body may include rarity: U|R|M)

@@ -70,31 +70,53 @@ function toUrl(role, rarityFolder, file) {
 // so we read a build-time manifest (dist/cards-manifest.json) instead. In plain
 // `node` (dev) there is no manifest and we list the directory as before.
 function loadManifest() {
-  if (typeof process.pkg === 'undefined') return null;
+  if (loadManifest.cache !== undefined) return loadManifest.cache;
+  if (typeof process.pkg === 'undefined') {
+    loadManifest.cache = null;
+    return null;
+  }
   // Inside the binary the bundle lives in dist/, so __dirname is snapshot dist/.
   try {
-    return JSON.parse(readFileSync(path.join(__dirname, 'cards-manifest.json'), 'utf8'));
+    loadManifest.cache = JSON.parse(readFileSync(path.join(__dirname, 'cards-manifest.json'), 'utf8'));
   } catch {
-    return null;
+    loadManifest.cache = null;
+  }
+  return loadManifest.cache;
+}
+
+const DEAL_FOLDERS = ['uncommon', 'rare', 'mythic'];
+// Gallery order. Special is shown but never dealt.
+const CATALOG_FOLDERS = [
+  { folder: 'uncommon', rarity: 'U' },
+  { folder: 'rare', rarity: 'R' },
+  { folder: 'mythic', rarity: 'M' },
+  { folder: 'special', rarity: 'S' },
+];
+
+function filesIn(role, folder) {
+  const manifest = loadManifest();
+  if (manifest) return manifest[role]?.[folder] || [];
+  const dir = path.join(CARDS_DIR, ROLE_DIR[role], folder);
+  try {
+    return readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.webp'));
+  } catch {
+    return [];
   }
 }
 
+/** "050 - Leader - (U) - The Blood Empress.webp" → name + rarity letter. */
+function parseCardFile(file, fallbackRarity) {
+  const base = file.replace(/\.(webp|png|jpe?g)$/i, '');
+  const m = base.match(/^(\d+)\s+-\s+.+?\s+-\s+\(([URMS])\)\s+-\s+(.+)$/);
+  if (!m) return { num: 0, rarity: fallbackRarity, name: base };
+  return { num: Number(m[1]), rarity: m[2], name: m[3] };
+}
+
 function buildIndex() {
-  const manifest = loadManifest();
   for (const role of ROLES) {
     index[role] = {};
-    for (const folder of ['uncommon', 'rare', 'mythic']) {
-      let files = [];
-      if (manifest?.[role]?.[folder]) {
-        files = manifest[role][folder];
-      } else {
-        const dir = path.join(CARDS_DIR, ROLE_DIR[role], folder);
-        try {
-          files = readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.webp'));
-        } catch {
-          files = []; // folder may not exist (e.g. no mythic for some role)
-        }
-      }
+    for (const folder of DEAL_FOLDERS) {
+      const files = filesIn(role, folder).slice().sort();
       index[role][folder] = files.map((f) => toUrl(role, folder, f));
     }
   }
@@ -189,6 +211,30 @@ export function exampleTable() {
     cards: EXAMPLE_CARDS.map(map),
     leader: map(EXAMPLE_LEADER),
   };
+}
+
+/**
+ * Public card gallery: grouped by role, each group ordered by rarity
+ * (uncommon → rare → mythic → special) and then by catalog number.
+ */
+export function cardCatalog() {
+  const groups = [];
+  for (const role of ROLES) {
+    const cards = [];
+    for (const { folder, rarity } of CATALOG_FOLDERS) {
+      const files = filesIn(role, folder).slice().sort((a, b) => {
+        const pa = parseCardFile(a, rarity);
+        const pb = parseCardFile(b, rarity);
+        return pa.num - pb.num || a.localeCompare(b);
+      });
+      for (const file of files) {
+        const meta = parseCardFile(file, rarity);
+        cards.push({ name: meta.name, rarity: meta.rarity, url: toUrl(role, folder, file) });
+      }
+    }
+    if (cards.length) groups.push({ role, cards });
+  }
+  return { groups };
 }
 
 /** For diagnostics/tests: pool sizes per role at each level. */
